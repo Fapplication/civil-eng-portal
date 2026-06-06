@@ -4,7 +4,7 @@
 
 const CONFIG = {
   // ⚠️ Replace with your deployed Google Apps Script Web App URL
-  API_URL: 'https://script.google.com/macros/s/AKfycbwV-ocQv0zw3MruJfLaFT7SYnOBgJBaSdxBM_Oo0CLFUw4CDvQUGywd9h8rFyYZsDOT/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxIXxp6pKnV5xAsRicZ4xzgG9Vt4yEWkiJi1huHI6clHtbO5GpnQcPqqMcRe3dxtLmv/exec',
 
   COURSES: [
     'Geometric Design of Road and Streets (CEng 3201)',
