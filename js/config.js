@@ -1,4 +1,4 @@
-// ============================================================
+  // ============================================================
 // js/config.js  –  Global configuration & API wrapper
 // ============================================================
 
@@ -25,12 +25,11 @@ const API = {
       const allParams = { action, ...params };
       let url = CONFIG.API_URL;
       let fetchOptions = { 
-        method: 'POST', // Default all traffic to POST for data payload symmetry
+        method: 'POST', 
         redirect: 'follow',
         mode: 'cors'
       };
 
-      // Define read actions that are completely safe to use via standard GET execution
       const strictReadActions = [
         'checkAuthorizedID', 'getMarks', 'getLectureNotes', 'getOnlineTests', 
         'getComplaints', 'getCourses', 'getNotices', 'getDashboard', 'getAllStudents'
@@ -47,7 +46,6 @@ const API = {
         url += '?' + qs;
         delete fetchOptions.body;
       } else {
-        // Safe cross-origin POST execution using form urlencoded boundaries
         const formParams = new URLSearchParams();
         Object.entries(allParams).forEach(([k, v]) => {
           formParams.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
