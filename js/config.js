@@ -1,4 +1,4 @@
-  // ============================================================
+// ============================================================
 // js/config.js  –  Global configuration & API wrapper
 // ============================================================
 
@@ -25,11 +25,12 @@ const API = {
       const allParams = { action, ...params };
       let url = CONFIG.API_URL;
       let fetchOptions = { 
-        method: 'POST', 
+        method: 'POST', // Default all traffic to POST for data payload symmetry
         redirect: 'follow',
         mode: 'cors'
       };
 
+      // Define read actions that are completely safe to use via standard GET execution
       const strictReadActions = [
         'checkAuthorizedID', 'getMarks', 'getLectureNotes', 'getOnlineTests', 
         'getComplaints', 'getCourses', 'getNotices', 'getDashboard', 'getAllStudents'
@@ -46,6 +47,7 @@ const API = {
         url += '?' + qs;
         delete fetchOptions.body;
       } else {
+        // Safe cross-origin POST execution using form urlencoded boundaries
         const formParams = new URLSearchParams();
         Object.entries(allParams).forEach(([k, v]) => {
           formParams.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
@@ -75,21 +77,18 @@ const API = {
   },
 
   // Auth
-  checkID: (studentId) => API.call('checkAuthorizedID', { studentId }),
-  sendOTP: (studentId, chatId = 'WEB') => API.call('sendOTP', { studentId, chatId }),
-  verifyOTP: (studentId, otp) => API.call('verifyOTP', { studentId, otp }),
+  checkID: (studentId) => API.call('checkAuthorizedID', { studentId: data.studentId.trim().toUpperCase() }),
   register: (data) => API.call('registerStudent', data),
-  loginStudent: (studentId, password) => API.call('loginStudent', { studentId, password }),
+  loginStudent: (studentId, password) => API.call('loginStudent', { studentId: data.studentId.trim().toUpperCase(), password }),
   loginInstructor: (username, password) => API.call('loginInstructor', { username, password }),
 
   // Student
-  getMarks: (studentId) => API.call('getMarks', { studentId }),
+  getMarks: (studentId) => API.call('getMarks', { studentId: data.studentId.trim().toUpperCase() }),
   submitComplaint: (data) => API.call('submitComplaint', data),
   getLectureNotes: (course = '') => API.call('getLectureNotes', { course }),
   getOnlineTests: (course = '') => API.call('getOnlineTests', { course }),
   submitTestResult: (data) => API.call('submitTestResult', data),
-  chatbot: (message, studentId) => API.call('chatbot', { message, studentId }),
-
+  chatbot: (message, studentId) => API.call('chatbot', { message, studentId: data.studentId.trim().toUpperCase()}),
   // Instructor
   getDashboard: () => API.call('getDashboard'),
   getAllStudents: (course) => API.call('getAllStudents', { course }),
