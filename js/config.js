@@ -3,7 +3,7 @@
 // ============================================================
 
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbz0J49lcZiwTkYcW3t8oBOr2D5_3RbSM1oxWeJ-Gow/dev',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxAYjBpaRT0W-EI43KadvV6NOJIZ4nJUXzF1K1hQSZh3ABVNlJPzbMFYW3Ckoetzs94/exec',
 
   COURSES: [
     'Geometric Design of Road and Streets (CEng 3201)',
