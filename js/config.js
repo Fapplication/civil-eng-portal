@@ -3,8 +3,7 @@
 // ============================================================
 
 const CONFIG = {
-  // ⚠️ Replace with your deployed Google Apps Script Web App URL
-  API_URL: 'https://script.google.com/macros/s/AKfycbxAYjBpaRT0W-EI43KadvV6NOJIZ4nJUXzF1K1hQSZh3ABVNlJPzbMFYW3Ckoetzs94/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycby4JH6SKQHvs6x2wr4UWMwrX2w6EjmTpDxqjEgEZehJ-bjLCHIUhbBJrfgV04rEKrkN/exec',
 
   COURSES: [
     'Geometric Design of Road and Streets (CEng 3201)',
@@ -20,33 +19,41 @@ const CONFIG = {
 };
 
 // ─── API Wrapper ─────────────────────────────────────────────
-// Google Apps Script requires GET with URL params OR a no-redirect POST.
-// The safest cross-origin method is GET via a <form> submit into an iframe
-// for writes, but for reads AND writes we use the fetch GET approach with
-// all data encoded as query parameters (GAS echoes CORS headers on GET).
 const API = {
   async call(action, params = {}) {
     try {
-      // Build query string – GAS Web Apps handle GET params in e.parameter
       const allParams = { action, ...params };
-      const qs = Object.entries(allParams)
-        .filter(([, v]) => v !== undefined && v !== null)
-        .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(
-          typeof v === 'object' ? JSON.stringify(v) : v
-        ))
-        .join('&');
+      let url = CONFIG.API_URL;
+      let fetchOptions = { redirect: 'follow' };
 
-      const url = CONFIG.API_URL + '?' + qs;
+      // FIX: Dynamically classify mutations to execute through POST.
+      // This protects the system from URL query string overflow crashes (HTTP 414).
+      const stateWriteActions = [
+        'registerStudent', 'submitComplaint', 'submitTestResult', 
+        'updateMark', 'uploadQuestion', 'uploadLectureNote', 'sendNotice', 'resolveComplaint'
+      ];
 
-      const res = await fetch(url, {
-        method: 'GET',
-        redirect: 'follow'   // GAS redirects once; follow it
-      });
+      if (stateWriteActions.includes(action)) {
+        fetchOptions.method = 'POST';
+        fetchOptions.body = JSON.stringify(allParams);
+        // Using text/plain content header avoids pre-flight CORS blocks inside Web App structures
+        fetchOptions.headers = { 'Content-Type': 'text/plain' };
+      } else {
+        fetchOptions.method = 'GET';
+        const qs = Object.entries(allParams)
+          .filter(([, v]) => v !== undefined && v !== null)
+          .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(
+            typeof v === 'object' ? JSON.stringify(v) : v
+          ))
+          .join('&');
+        url += '?' + qs;
+      }
+
+      const res = await fetch(url, fetchOptions);
 
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
 
-      // GAS sometimes wraps in HTML on auth errors – guard against it
       if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
         console.error('Non-JSON response:', text.substring(0, 200));
         return { success: false, message: 'Server returned an unexpected response. Check your Apps Script deployment.' };
@@ -55,7 +62,6 @@ const API = {
       return JSON.parse(text);
     } catch (err) {
       console.error('API Error:', err);
-      // Give a more helpful message based on error type
       if (err.message && err.message.includes('Failed to fetch')) {
         return { success: false, message: 'Cannot reach the server. Make sure your Apps Script Web App URL is correct in js/config.js and is deployed as "Anyone" access.' };
       }
