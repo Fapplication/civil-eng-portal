@@ -1,10 +1,9 @@
 // ============================================================
-// js/config.js  –  Global configuration & API wrapper
+// js/config.js  –  Global configuration & API wrapper (UPDATED)
 // ============================================================
 
 const CONFIG = {
-  // ⚠️ Replace with your deployed Google Apps Script Web App URL
-  API_URL: 'https://script.google.com/macros/s/AKfycby7zvqElO4CssZSvI74ZI9mSBKKe4hMMIAyT7lpGBcReZLltzQfsbCptMhSXfzCj4oG/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbz0J49lcZiwTkYcW3t8oBOr2D5_3RbSM1oxWeJ-Gow/dev',
 
   COURSES: [
     'Geometric Design of Road and Streets (CEng 3201)',
@@ -19,151 +18,214 @@ const CONFIG = {
   }
 };
 
-// ─── API Wrapper ─────────────────────────────────────────────
-// Google Apps Script requires GET with URL params OR a no-redirect POST.
-// The safest cross-origin method is GET via a <form> submit into an iframe
-// for writes, but for reads AND writes we use the fetch GET approach with
-// all data encoded as query parameters (GAS echoes CORS headers on GET).
+
+// ─────────────────────────────────────────────
+// API CORE
+// ─────────────────────────────────────────────
 const API = {
   async call(action, params = {}) {
     try {
-      // Build query string – GAS Web Apps handle GET params in e.parameter
       const allParams = { action, ...params };
+
       const qs = Object.entries(allParams)
         .filter(([, v]) => v !== undefined && v !== null)
-        .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(
-          typeof v === 'object' ? JSON.stringify(v) : v
-        ))
+        .map(([k, v]) =>
+          encodeURIComponent(k) + '=' + encodeURIComponent(
+            typeof v === 'object' ? JSON.stringify(v) : v
+          )
+        )
         .join('&');
 
       const url = CONFIG.API_URL + '?' + qs;
 
-      const res = await fetch(url, {
-        method: 'GET',
-        redirect: 'follow'   // GAS redirects once; follow it
-      });
+      const res = await fetch(url, { method: 'GET', redirect: 'follow' });
 
-      if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
 
-      // GAS sometimes wraps in HTML on auth errors – guard against it
-      if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-        console.error('Non-JSON response:', text.substring(0, 200));
-        return { success: false, message: 'Server returned an unexpected response. Check your Apps Script deployment.' };
+      if (!text.trim().startsWith('{')) {
+        console.error('Non-JSON response:', text);
+        return { success: false, message: 'Server error or invalid response' };
       }
 
       return JSON.parse(text);
+
     } catch (err) {
-      console.error('API Error:', err);
-      // Give a more helpful message based on error type
-      if (err.message && err.message.includes('Failed to fetch')) {
-        return { success: false, message: 'Cannot reach the server. Make sure your Apps Script Web App URL is correct in js/config.js and is deployed as "Anyone" access.' };
-      }
-      return { success: false, message: 'Network error: ' + err.message };
+      return {
+        success: false,
+        message: 'Network error: ' + err.message
+      };
     }
   },
 
-  // Auth
-  checkID: (studentId) => API.call('checkAuthorizedID', { studentId: studentId.trim().toUpperCase() }),
-  sendOTP: (studentId, chatId = 'WEB') => API.call('sendOTP', { studentId:studentId.trim().toUpperCase(), chatId }),
-  register: (data) => API.call('registerStudent', data),
-  loginStudent: (studentId, password) => API.call('loginStudent', { studentId:studentId.trim().toUpperCase(), password }),
-  loginInstructor: (username, password) => API.call('loginInstructor', { username, password }),
+  // ─────────────────────────────────────────────
+  // AUTH (UPDATED - NO OTP)
+  // ─────────────────────────────────────────────
+  checkID: (studentId) =>
+    API.call('checkAuthorizedID', {
+      studentId: studentId.trim().toUpperCase()
+    }),
 
-  // Student
-  getMarks: (studentId) => API.call('getMarks', { studentId:studentId.trim().toUpperCase() }),
-  submitComplaint: (data) => API.call('submitComplaint', data),
-  getLectureNotes: (course = '') => API.call('getLectureNotes', { course }),
-  getOnlineTests: (course = '') => API.call('getOnlineTests', { course }),
-  submitTestResult: (data) => API.call('submitTestResult', data),
-  chatbot: (message, studentId) => API.call('chatbot', { message, studentId }),
+  register: (data) =>
+    API.call('registerStudent', {
+      ...data,
+      studentId: data.studentId.trim().toUpperCase()
+    }),
 
-  // Instructor
+  loginStudent: (studentId, password) =>
+    API.call('loginStudent', {
+      studentId: studentId.trim().toUpperCase(),
+      password
+    }),
+
+  loginInstructor: (username, password) =>
+    API.call('loginInstructor', { username, password }),
+
+
+  // ─────────────────────────────────────────────
+  // PASSWORD RESET SYSTEM (NEW)
+  // ─────────────────────────────────────────────
+  requestPasswordReset: (studentId) =>
+    API.call('requestPasswordReset', {
+      studentId: studentId.trim().toUpperCase()
+    }),
+
+  verifyPasswordResetOTP: (studentId, otp) =>
+    API.call('verifyPasswordResetOTP', {
+      studentId: studentId.trim().toUpperCase(),
+      otp
+    }),
+
+  resetPassword: (studentId, newPassword) =>
+    API.call('resetPassword', {
+      studentId: studentId.trim().toUpperCase(),
+      newPassword
+    }),
+
+
+  // ─────────────────────────────────────────────
+  // STUDENT
+  // ─────────────────────────────────────────────
+  getMarks: (studentId) =>
+    API.call('getMarks', {
+      studentId: studentId.trim().toUpperCase()
+    }),
+
+  submitComplaint: (data) =>
+    API.call('submitComplaint', data),
+
+  getLectureNotes: (course = '') =>
+    API.call('getLectureNotes', { course }),
+
+  getOnlineTests: (course = '') =>
+    API.call('getOnlineTests', { course }),
+
+  submitTestResult: (data) =>
+    API.call('submitTestResult', data),
+
+  chatbot: (message, studentId) =>
+    API.call('chatbot', {
+      message,
+      studentId: studentId?.trim().toUpperCase()
+    }),
+
+
+  // ─────────────────────────────────────────────
+  // INSTRUCTOR
+  // ─────────────────────────────────────────────
   getDashboard: () => API.call('getDashboard'),
-  getAllStudents: (course) => API.call('getAllStudents', { course }),
+
+  getAllStudents: (course) =>
+    API.call('getAllStudents', { course }),
+
   updateMark: (data) => API.call('updateMark', data),
+
   uploadQuestion: (data) => API.call('uploadQuestion', data),
+
   uploadLectureNote: (data) => API.call('uploadLectureNote', data),
+
   sendNotice: (data) => API.call('sendNotice', data),
+
   getComplaints: () => API.call('getComplaints'),
+
   resolveComplaint: (data) => API.call('resolveComplaint', data),
+
   getCourses: () => API.call('getCourses')
 };
 
-// ─── Session Helpers ─────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// SESSION
+// ─────────────────────────────────────────────
 const Session = {
   get: () => JSON.parse(localStorage.getItem('portalSession') || 'null'),
   set: (data) => localStorage.setItem('portalSession', JSON.stringify(data)),
   clear: () => localStorage.removeItem('portalSession'),
-  isStudent: () => { const s = Session.get(); return s && s.role === 'student'; },
-  isInstructor: () => { const s = Session.get(); return s && s.role === 'instructor'; },
-  requireStudent: () => {
-    if (!Session.isStudent()) { window.location.href = 'index.html'; return null; }
-    return Session.get();
+
+  isStudent: () => {
+    const s = Session.get();
+    return s && s.role === 'student';
   },
-  requireInstructor: () => {
-    if (!Session.isInstructor()) { window.location.href = 'index.html'; return null; }
-    return Session.get();
+
+  isInstructor: () => {
+    const s = Session.get();
+    return s && s.role === 'instructor';
   }
 };
 
-// ─── Toast Notifications ─────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
 const Toast = {
-  show(message, type = 'info', duration = 3500) {
-    const existing = document.querySelector('.toast-container');
-    const container = existing || (() => {
-      const c = document.createElement('div');
-      c.className = 'toast-container';
-      document.body.appendChild(c);
-      return c;
-    })();
+  show(message, type = 'info') {
+    const container = document.querySelector('.toast-container') ||
+      (() => {
+        const c = document.createElement('div');
+        c.className = 'toast-container';
+        document.body.appendChild(c);
+        return c;
+      })();
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
-    toast.innerHTML = `<span class="toast-icon">${icons[type] || 'ℹ'}</span><span>${message}</span>`;
+    toast.innerText = message;
+
     container.appendChild(toast);
 
-    requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 400);
-    }, duration);
+    setTimeout(() => toast.remove(), 3000);
   },
+
   success: (m) => Toast.show(m, 'success'),
   error: (m) => Toast.show(m, 'error'),
   info: (m) => Toast.show(m, 'info'),
   warning: (m) => Toast.show(m, 'warning')
 };
 
-// ─── Loading Spinner ─────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// LOADER
+// ─────────────────────────────────────────────
 const Loader = {
   show(el, text = 'Loading...') {
-    if (!el) return;
-    el._original = el.innerHTML;
+    el._html = el.innerHTML;
     el.disabled = true;
-    el.innerHTML = `<span class="spinner"></span>${text}`;
+    el.innerHTML = text;
   },
   hide(el) {
-    if (!el || !el._original) return;
-    el.innerHTML = el._original;
+    el.innerHTML = el._html;
     el.disabled = false;
-    delete el._original;
   }
 };
 
-// ─── Grade Utility ───────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// GRADE UTILITY
+// ─────────────────────────────────────────────
 function getGradeLetter(total) {
   if (total >= 90) return { letter: 'A+', color: '#10b981' };
-  if (total >= 85) return { letter: 'A',  color: '#10b981' };
-  if (total >= 80) return { letter: 'A-', color: '#10b981' };
-  if (total >= 75) return { letter: 'B+', color: '#3b82f6' };
-  if (total >= 70) return { letter: 'B',  color: '#3b82f6' };
-  if (total >= 65) return { letter: 'B-', color: '#3b82f6' };
-  if (total >= 60) return { letter: 'C+', color: '#f59e0b' };
-  if (total >= 50) return { letter: 'C',  color: '#f59e0b' };
-  if (total >= 45) return { letter: 'C-',  color: '#f97316' };
-  if (total >= 40) return { letter: 'D',  color: '#f59e0b' };
-  if (total >= 30) return { letter: 'Fx',  color: '#f97316' };
+  if (total >= 80) return { letter: 'A', color: '#10b981' };
+  if (total >= 70) return { letter: 'B', color: '#3b82f6' };
+  if (total >= 60) return { letter: 'C', color: '#f59e0b' };
+  if (total >= 50) return { letter: 'D', color: '#f97316' };
   return { letter: 'F', color: '#ef4444' };
 }
