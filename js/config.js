@@ -163,6 +163,8 @@ function getGradeLetter(total) {
   if (total >= 65) return { letter: 'B-', color: '#3b82f6' };
   if (total >= 60) return { letter: 'C+', color: '#f59e0b' };
   if (total >= 50) return { letter: 'C',  color: '#f59e0b' };
-  if (total >= 45) return { letter: 'D',  color: '#f97316' };
+  if (total >= 45) return { letter: 'C-',  color: '#f97316' };
+  if (total >= 40) return { letter: 'D',  color: '#f59e0b' };
+  if (total >= 30) return { letter: 'Fx',  color: '#f97316' };
   return { letter: 'F', color: '#ef4444' };
 }
