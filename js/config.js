@@ -64,15 +64,14 @@ const API = {
   },
 
   // Auth
-  checkID: (studentId) => API.call('checkAuthorizedID', { studentId }),
-  sendOTP: (studentId, chatId = 'WEB') => API.call('sendOTP', { studentId, chatId }),
-  verifyOTP: (studentId, otp) => API.call('verifyOTP', { studentId, otp }),
+  checkID: (studentId) => API.call('checkAuthorizedID', { studentId: studentId.trim().toUpperCase() }),
+  sendOTP: (studentId, chatId = 'WEB') => API.call('sendOTP', { studentId:studentId.trim().toUpperCase(), chatId }),
   register: (data) => API.call('registerStudent', data),
-  loginStudent: (studentId, password) => API.call('loginStudent', { studentId, password }),
+  loginStudent: (studentId, password) => API.call('loginStudent', { studentId:studentId.trim().toUpperCase(), password }),
   loginInstructor: (username, password) => API.call('loginInstructor', { username, password }),
 
   // Student
-  getMarks: (studentId) => API.call('getMarks', { studentId }),
+  getMarks: (studentId) => API.call('getMarks', { studentId:studentId.trim().toUpperCase() }),
   submitComplaint: (data) => API.call('submitComplaint', data),
   getLectureNotes: (course = '') => API.call('getLectureNotes', { course }),
   getOnlineTests: (course = '') => API.call('getOnlineTests', { course }),
