@@ -24,21 +24,19 @@ const API = {
     try {
       const allParams = { action, ...params };
       let url = CONFIG.API_URL;
-      let fetchOptions = { redirect: 'follow' };
+      let fetchOptions = { 
+        method: 'POST', // Default all traffic to POST for data payload symmetry
+        redirect: 'follow',
+        mode: 'cors'
+      };
 
-      // FIX: Dynamically classify mutations to execute through POST.
-      // This protects the system from URL query string overflow crashes (HTTP 414).
-      const stateWriteActions = [
-        'registerStudent', 'submitComplaint', 'submitTestResult', 
-        'updateMark', 'uploadQuestion', 'uploadLectureNote', 'sendNotice', 'resolveComplaint'
+      // Define read actions that are completely safe to use via standard GET execution
+      const strictReadActions = [
+        'checkAuthorizedID', 'getMarks', 'getLectureNotes', 'getOnlineTests', 
+        'getComplaints', 'getCourses', 'getNotices', 'getDashboard', 'getAllStudents'
       ];
 
-      if (stateWriteActions.includes(action)) {
-        fetchOptions.method = 'POST';
-        fetchOptions.body = JSON.stringify(allParams);
-        // Using text/plain content header avoids pre-flight CORS blocks inside Web App structures
-        fetchOptions.headers = { 'Content-Type': 'text/plain' };
-      } else {
+      if (strictReadActions.includes(action)) {
         fetchOptions.method = 'GET';
         const qs = Object.entries(allParams)
           .filter(([, v]) => v !== undefined && v !== null)
@@ -47,25 +45,34 @@ const API = {
           ))
           .join('&');
         url += '?' + qs;
+        delete fetchOptions.body;
+      } else {
+        // Safe cross-origin POST execution using form urlencoded boundaries
+        const formParams = new URLSearchParams();
+        Object.entries(allParams).forEach(([k, v]) => {
+          formParams.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
+        });
+        fetchOptions.body = formParams.toString();
+        fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
       }
 
       const res = await fetch(url, fetchOptions);
 
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) throw new Error('HTTP Status ' + res.status);
       const text = await res.text();
 
       if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
-        console.error('Non-JSON response:', text.substring(0, 200));
-        return { success: false, message: 'Server returned an unexpected response. Check your Apps Script deployment.' };
+        console.error('Non-JSON Engine Response:', text.substring(0, 200));
+        return { success: false, message: 'Unexpected server payload configuration. Verify Apps Script deployment.' };
       }
 
       return JSON.parse(text);
     } catch (err) {
-      console.error('API Error:', err);
+      console.error('API Connection Error:', err);
       if (err.message && err.message.includes('Failed to fetch')) {
         return { success: false, message: 'Cannot reach the server. Make sure your Apps Script Web App URL is correct in js/config.js and is deployed as "Anyone" access.' };
       }
-      return { success: false, message: 'Network error: ' + err.message };
+      return { success: false, message: 'Network interface error: ' + err.message };
     }
   },
 
